@@ -7,14 +7,14 @@
 from connectors.core.connector import ConnectorError, get_logger
 
 from .utils import *
-from .utils import _api_request, _get_list_from_str_or_list, _validate_vdom
+from .utils import _api_request, _get_list_from_str_or_list, _path, _validate_vdom
 
 logger = get_logger('fortigatev2')
 
 
 def is_service_available(config, service_name, vdom_list):
     try:
-        res = _api_request(config, '{0}/{1}'.format(FIREWALL_SERVICE_API, service_name,
+        res = _api_request(config, '{0}{1}'.format(FIREWALL_SERVICE_API, _path(service_name),
                                                     ))
         if res:
             return True
@@ -48,7 +48,7 @@ def get_service_groups(config, params, param=None, Flag=True):
             vdom_list, vdom_not_exists = _validate_vdom(config, params, check_multiple_vdom=False)
             param = {"vdom": vdom_list}
         if params.get('name'):
-            url = FIREWALL_SERVICE_GRP_API + '/{group_name}'.format(group_name=params.get('name').replace('/', '%2f'))
+            url = FIREWALL_SERVICE_GRP_API + '/{group_name}'.format(group_name=_path(params.get('name')))
         else:
             url = FIREWALL_SERVICE_GRP_API
         response = _api_request(config, url , parameters=param, method='GET',
@@ -78,7 +78,7 @@ def update_service_group(config, params):
         if params.get('new_name'):
             body.update({'name': params.get('new_name')})
         body = {k: v for k, v in body.items() if v is not None and v != '' and v != {} and v != []}
-        url = FIREWALL_SERVICE_GRP_API + '/{group_name}'.format(group_name=params.get('name').replace('/', '%2f'))
+        url = FIREWALL_SERVICE_GRP_API + '/{group_name}'.format(group_name=_path(params.get('name')))
         response = _api_request(config, url, parameters=param, body=body, method='PUT',
                                 header={'accept': 'application/json'})
         return response
@@ -90,7 +90,7 @@ def delete_service_group(config, params):
     try:
         vdom_list, vdom_not_exists = _validate_vdom(config, params, check_multiple_vdom=False)
         param = {"vdom": vdom_list}
-        url = FIREWALL_SERVICE_GRP_API + '/{group_name}'.format(group_name=params.get('name').replace('/', '%2f'))
+        url = FIREWALL_SERVICE_GRP_API + '/{group_name}'.format(group_name=_path(params.get('name')))
         response = _api_request(config, url, parameters=param, method='DELETE', header={'accept': 'application/json'})
         return response
     except Exception as Err:

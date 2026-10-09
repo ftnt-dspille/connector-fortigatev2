@@ -8,7 +8,7 @@ from connectors.core.connector import ConnectorError, get_logger
 
 from .constants import *
 from .utils import *
-from .utils import _api_request, _get_list_from_str_or_list, _get_vdom, _validate_vdom
+from .utils import _api_request, _get_list_from_str_or_list, _get_vdom, _path, _validate_vdom
 
 logger = get_logger('fortigatev2')
 
@@ -18,7 +18,7 @@ def _get_app_block_profile(config, params):
     vdom = _get_vdom(config, params, check_multiple_vdom=True)
     app_param = {'vdom': vdom} if vdom else {}
     try:
-        response = _api_request(config, BLOCK_APP.format(app_block_policy=app_block_policy_name), parameters=app_param)
+        response = _api_request(config, BLOCK_APP.format(app_block_policy=_path(app_block_policy_name)), parameters=app_param)
         if response.get("status") == "success":
             return response
         else:
@@ -102,7 +102,7 @@ def block_applications(config, params):
                 temp_policy[0]["application"] += [{"id": app.get("id"), "q_origin_key": app.get("id")}]
                 result.append({"name": app.get("name"), "message": "Application blocked successfully",
                                "status": "Successful"})
-        response = _api_request(config, BLOCK_APP.format(app_block_policy=app_block_policy_name),
+        response = _api_request(config, BLOCK_APP.format(app_block_policy=_path(app_block_policy_name)),
                                 parameters=app_param, method="put", body=block_policy_details.get("results")[0])
         if response.get("status") == "success":
             return result
@@ -154,7 +154,7 @@ def unblock_applications(config, params):
                         if app_id.get("name") not in app_name:
                             result.append({"name": str(app_id.get("name")), "message":
                                 "Application not found in block state", "status": "Successful"})
-            response = _api_request(config, BLOCK_APP.format(app_block_policy=app_block_policy_name),
+            response = _api_request(config, BLOCK_APP.format(app_block_policy=_path(app_block_policy_name)),
                                     parameters=app_param, method="put", body=block_policy_details.get("results")[0])
             if response.get("status") == "success":
                 return result
@@ -178,8 +178,7 @@ def get_blocked_applications(config, params):
 
         all_apps_details = get_list_of_applications(config, params)
         # Get default application block policy
-        block_policy_details = _api_request(config, BLOCK_APP.format(app_block_policy=
-                                                                     app_block_policy_name), parameters=app_param)
+        block_policy_details = _api_request(config, BLOCK_APP.format(app_block_policy=_path(app_block_policy_name)), parameters=app_param)
         if 'entries' not in block_policy_details.get('results')[0]:
             logger.error(APP_PERMISSION)
             raise ConnectorError(APP_PERMISSION)

@@ -435,3 +435,24 @@ def test_get_country_names():
 def test_unknown_operation_raises():
     with pytest.raises(ConnectorError):
         run('no_such_operation')
+
+
+# --------------------------------------------------------------------------- path escaping
+@pytest.mark.parametrize('operation, params, path', [
+    ('get_users', {'name': 'a?b#c'}, 'cmdb/user/local/a%3Fb%23c'),
+    ('delete_user', {'name': '../system/admin'}, 'cmdb/user/local/..%2Fsystem%2Fadmin'),
+    ('get_address_groups', {'address_group_category': 'IPv4 Group', 'group_name': 'grp a/b'},
+     'cmdb/firewall/addrgrp/grp%20a%2Fb'),
+    ('delete_address', {'address_category': 'IPv4 Address', 'name': 'net 10/8'}, 'cmdb/firewall/address/net%2010%2F8'),
+    ('get_firewall_services', {'name': 'svc?x'}, 'cmdb/firewall.service/custom/svc%3Fx'),
+    ('delete_service_group', {'name': 'g#1'}, 'cmdb/firewall.service/group/g%231'),
+    ('delete_policy', {'policyid': '7?x=1'}, 'cmdb/firewall/policy/7%3Fx%3D1'),
+])
+def test_names_are_escaped_as_one_path_segment(fgt, operation, params, path):
+    """Object names from playbook params must never add path segments or a query string."""
+    fgt.add(responses.GET, BASE + path, json={'results': [{'name': 'x'}]})
+    fgt.add(responses.DELETE, BASE + path, json=OK)
+    run(operation, params)
+    sent = [c.request.url for c in _active['mock'].calls if 'system/vdom' not in c.request.url]
+    assert sent and all(urlparse(u).path == urlparse(BASE + path).path for u in sent), sent
+    assert all(not urlparse(u).query or 'vdom=' in urlparse(u).query for u in sent)

@@ -82,7 +82,9 @@ creates and attaches one on first use.
 | Unblock URL | `unblock_url` | remediation |
 
 `Execute Command` connects over SSH with the username/password (or private key) given
-in the operation, not the API key.
+in the operation, not the API key. It accepts the FortiGate's SSH host key without
+checking it (paramiko `AutoAddPolicy`, unchanged from `fortigate-firewall`), so use it only
+over a network path you trust between FortiSOAR and the FortiGate.
 
 ## FortiOS behavior worth knowing
 

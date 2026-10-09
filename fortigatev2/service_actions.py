@@ -7,7 +7,7 @@
 from connectors.core.connector import ConnectorError, get_logger
 
 from .utils import *
-from .utils import _api_request, _validate_vdom
+from .utils import _api_request, _path, _validate_vdom
 
 logger = get_logger('fortigatev2')
 
@@ -53,7 +53,7 @@ def _set_protocol_fields(config, name, body, app_param):
     sets protocol ICMP/IP, so apply them with a follow-up PUT."""
     fields = {k: body[k] for k in ('icmptype', 'icmpcode', 'protocol-number') if k in body}
     if fields and body.get('protocol') in ('ICMP', 'ICMP6', 'IP'):
-        _api_request(config, FIREWALL_SERVICE_API + name.replace('/', '%2f'), parameters=app_param, method='PUT',
+        _api_request(config, FIREWALL_SERVICE_API + _path(name), parameters=app_param, method='PUT',
                      body=fields)
 
 
@@ -75,7 +75,7 @@ def get_firewall_services(config, params):
 
         app_param = {'vdom': vdom_list} if vdom_list else {}
         if params.get('name'):
-            return _api_request(config, '{}/{}'.format(FIREWALL_SERVICE_API, params.get('name').replace('/', '%2f')), parameters=app_param)
+            return _api_request(config, FIREWALL_SERVICE_API + _path(params.get('name')), parameters=app_param)
         else:
             return _api_request(config, FIREWALL_SERVICE_API, parameters=app_param)
     except Exception as Err:
@@ -89,7 +89,7 @@ def update_firewall_service(config, params):
         body_param = _service_body(config, params, app_param, is_update=True)
         if params.get('new_name'):
             body_param.update({'name': params.get('new_name')})
-        response = _api_request(config, FIREWALL_SERVICE_API + params.get('name').replace('/', '%2f'), parameters=app_param, method='PUT',
+        response = _api_request(config, FIREWALL_SERVICE_API + _path(params.get('name')), parameters=app_param, method='PUT',
                                 body=body_param)
         _set_protocol_fields(config, body_param['name'], body_param, app_param)
         return response
@@ -101,6 +101,6 @@ def delete_firewall_service(config, params):
     try:
         vdom_list, vdom_not_exists = _validate_vdom(config, params, check_multiple_vdom=False)
         app_param = {'vdom': vdom_list} if vdom_list else {}
-        return _api_request(config, FIREWALL_SERVICE_API + params.get('name').replace('/', '%2f'), parameters=app_param, method='DELETE')
+        return _api_request(config, FIREWALL_SERVICE_API + _path(params.get('name')), parameters=app_param, method='DELETE')
     except Exception as Err:
         raise ConnectorError(str(Err))

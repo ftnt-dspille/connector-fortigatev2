@@ -228,6 +228,19 @@ class TestAddresses:
                                                 'type': 'Subnet', 'subnet': '192.0.2.41'})
         assert 'already exists' in str(err.value)
 
+    def test_name_with_space_and_slash(self, live_config, fgt):
+        """Names are escaped as a single REST path segment."""
+        addr = name('sp ace/24')
+        run(live_config, 'create_address', {'address_category': 'IPv4 Address', 'name': addr, 'type': 'Subnet',
+                                            'subnet': '192.0.2.64/28'})
+        got = run(live_config, 'get_addresses', {'address_category': 'IPv4 Address', 'name': addr})
+        assert got['results'][0]['name'] == addr
+        run(live_config, 'update_address', {'address_category': 'IPv4 Address', 'name': addr, 'type': 'Subnet',
+                                            'subnet': '192.0.2.80/28', 'comment': 'escaped'})
+        assert fgt.results('cmdb/firewall/address/' + fgt.key(addr))[0]['comment'] == 'escaped'
+        run(live_config, 'delete_address', {'address_category': 'IPv4 Address', 'name': addr})
+        assert not fgt.exists('cmdb/firewall/address/' + fgt.key(addr))
+
     def test_get_missing_address_errors(self, live_config):
         with pytest.raises(ConnectorError) as err:
             run(live_config, 'get_addresses', {'address_category': 'IPv4 Address', 'name': name('nope')})

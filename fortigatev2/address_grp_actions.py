@@ -8,7 +8,7 @@ from connectors.core.connector import ConnectorError, get_logger
 
 from .constants import *
 from .utils import *
-from .utils import _api_request, _get_list_from_str_or_list, _validate_vdom
+from .utils import _api_request, _get_list_from_str_or_list, _path, _validate_vdom
 
 logger = get_logger('fortigatev2')
 
@@ -71,7 +71,7 @@ def get_address_groups(config, params, vdom_list=None):
             url = ADDRESS_GROUP_ALL_API
         if params.get('group_name'):
 
-            response = _api_request(config, '{0}/{1}'.format(url, params.get('group_name')), parameters=querystring)
+            response = _api_request(config, '{0}/{1}'.format(url, _path(params.get('group_name'))), parameters=querystring)
         else:
             if vdom_list:
                 querystring.update({'vdom': ','.join(vdom_list)})
@@ -109,7 +109,7 @@ def update_address_group(config, params):
                 data['member'] = generate_dict_from_list(members_list)
             if params.get('new_group_name'):
                 data.update({'name': params.get('new_group_name')})
-            response = _api_request(config, url.format(ip_group_name=params.get('group_name').replace('/', '%2f')),
+            response = _api_request(config, url.format(ip_group_name=_path(params.get('group_name'))),
                                     parameters={'vdom': vdom}, body=data, method='PUT')
             response_list.append(response)
         return response_list
@@ -127,7 +127,7 @@ def delete_address_group(config, params):
             url = ADDRESS_GROUP_API_IPv6
         if vdom_list:
             querystring.update({'vdom': ','.join(vdom_list)})
-        response = _api_request(config, url.format(ip_group_name=params.get('group_name').replace('/', '%2f')),
+        response = _api_request(config, url.format(ip_group_name=_path(params.get('group_name'))),
                                 parameters=querystring, method='DELETE')
         return response
     except Exception as Err:

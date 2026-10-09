@@ -7,7 +7,7 @@
 from connectors.core.connector import ConnectorError, get_logger
 
 from .utils import *
-from .utils import _api_request, _get_list_from_str_or_list, _validate_vdom
+from .utils import _api_request, _get_list_from_str_or_list, _path, _validate_vdom
 
 logger = get_logger('fortigatev2')
 
@@ -66,7 +66,7 @@ def create_policy(config, params):
 def update_policy(config, params):
     try:
         vdom_list, vdom_not_exists = _validate_vdom(config, params, check_multiple_vdom=False)
-        response = _api_request(config, LIST_OF_POLICIES_API + str(params.get('policyid')), parameters={"vdom": vdom_list})
+        response = _api_request(config, LIST_OF_POLICIES_API + _path(params.get('policyid')), parameters={"vdom": vdom_list})
         curr_details = response.get('results', [])
         if len(curr_details) != 1:
             raise ConnectorError('Input Policy name not found')
@@ -126,7 +126,7 @@ def update_policy(config, params):
             for profile in params.get('security_profile_names_to_disable'):
                 tmp = security_profiles.get(profile)
                 body_param[tmp] = ""
-        response = _api_request(config, LIST_OF_POLICIES_API + str(params.get('policyid')), parameters=param,
+        response = _api_request(config, LIST_OF_POLICIES_API + _path(params.get('policyid')), parameters=param,
                                 body=body_param, method='PUT', header={'accept': 'application/json'})
         return response
     except Exception as Err:
@@ -136,7 +136,7 @@ def update_policy(config, params):
 def delete_policy(config, params):
     try:
         vdom_list, vdom_not_exists = _validate_vdom(config, params, check_multiple_vdom=False)
-        response = _api_request(config, LIST_OF_POLICIES_API + str(params.get('policyid')),
+        response = _api_request(config, LIST_OF_POLICIES_API + _path(params.get('policyid')),
                                 parameters={"vdom": vdom_list}, method='DELETE', header={'accept': 'application/json'})
         return response
     except Exception as Err:
@@ -181,7 +181,7 @@ def get_list_of_policies(config, params):
         vdom_list, vdom_not_exists = _validate_vdom(config, params, check_multiple_vdom=False)
         if params.get('policyid'):
             endpoint = LIST_OF_SECURITY_POLICIES_API if params.get('ngfw_mode') == 'Policy Based' else LIST_OF_POLICIES_API
-            response = _api_request(config, endpoint + str(params.get('policyid')), parameters={"vdom": vdom_list})
+            response = _api_request(config, endpoint + _path(params.get('policyid')), parameters={"vdom": vdom_list})
         else:
             response = _get_policy(config, params, vdoms=vdom_list, check_multiple_policy=False)
         if 'result' in response and not response.get('result', []):

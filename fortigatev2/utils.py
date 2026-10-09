@@ -7,7 +7,7 @@
 import ipaddress
 import json
 from time import sleep
-from urllib.parse import quote_plus
+from urllib.parse import quote, quote_plus
 
 import requests
 from connectors.core.connector import ConnectorError, get_logger
@@ -48,6 +48,11 @@ def get_final_lst(params, prev_response, param_name, add_param, remove_param):
         return member_list
     except Exception as Err:
         raise ConnectorError(str(Err))
+
+
+def _path(value):
+    """Escape one REST path segment (an object name or id taken from operation params)."""
+    return quote(str(value), safe='')
 
 
 def _get_config(config):
@@ -209,7 +214,7 @@ def get_address_grp(config, ip_group_name, vdom, Flag=False, type=''):
         url = ADDRESS_GROUP_API
     else:
         url = ADDRESS_GROUP_API_IPv6
-    response = _api_request(config, url.format(ip_group_name=ip_group_name.replace('/', '%2f')), parameters=querystring)
+    response = _api_request(config, url.format(ip_group_name=_path(ip_group_name)), parameters=querystring)
     if response.get('results') and 'member' not in response.get('results')[0]:
         logger.error("Check Firewall Address permission to read group member.")
         return True

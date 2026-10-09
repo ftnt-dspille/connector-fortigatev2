@@ -4,13 +4,12 @@
   FORTINET CONFIDENTIAL & FORTINET PROPRIETARY SOURCE CODE
   Copyright end """
 
-from urllib.parse import quote_plus
 
 from connectors.core.connector import ConnectorError, get_logger
 
 from .constants import *
 from .utils import *
-from .utils import _api_request, _get_list_from_str_or_list, _validate_vdom
+from .utils import _api_request, _get_list_from_str_or_list, _path, _validate_vdom
 
 logger = get_logger('fortigatev2')
 
@@ -132,7 +131,7 @@ def _create_url_filter_table(config, profile_name, entries, vdom_list):
     response = _api_request(config, URL_FILTER, method='post', body={'name': profile_name, 'entries': entries},
                             parameters={'vdom': vdom_list})
     url_table_id = response.get('mkey')
-    _api_request(config, GET_WEB_PROFILE + '/' + quote_plus(profile_name), method='put',
+    _api_request(config, GET_WEB_PROFILE + '/' + _path(profile_name), method='put',
                  body={'web': {'urlfilter-table': url_table_id}}, parameters={'vdom': vdom_list})
     return response
 

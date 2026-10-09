@@ -8,7 +8,7 @@ from connectors.core.connector import ConnectorError, get_logger
 
 from .constants import *
 from .utils import *
-from .utils import _api_request, _get_list_from_str_or_list, _validate_vdom
+from .utils import _api_request, _get_list_from_str_or_list, _path, _validate_vdom
 
 logger = get_logger('fortigatev2')
 
@@ -46,7 +46,7 @@ def update_user_group(config, params, querystring, flag=False):
         else:
             user_groups_list = _get_list_from_str_or_list(params, 'user_group_name')
         for user_group_name in user_groups_list:
-            user_group_res = _api_request(config, USER_GROUP.format(group_name=user_group_name), parameters=querystring,
+            user_group_res = _api_request(config, USER_GROUP.format(group_name=_path(user_group_name)), parameters=querystring,
                                           method='GET')
             if len(user_group_res.get('results')) == 1:
                 put_body = user_group_res.get('results')[0]
@@ -61,7 +61,7 @@ def update_user_group(config, params, querystring, flag=False):
                         put_body['member'].append({'name': params.get('name')})
                 try:
                     # Add user to user group
-                    add_user_group_res = _api_request(config, USER_GROUP.format(group_name=user_group_name),
+                    add_user_group_res = _api_request(config, USER_GROUP.format(group_name=_path(user_group_name)),
                                                       parameters=querystring, body=put_body, method='PUT')
                     logger.info('user added successfully to user group, api response is {0}'.format(add_user_group_res))
                 except Exception as err:
@@ -133,7 +133,7 @@ def get_users(config, params):
             querystring.update({'vdom': ','.join(vdom_list)})
 
         if params.get('name'):
-            response = _api_request(config, USER_API + str(params.get('name')), parameters=querystring, method='GET')
+            response = _api_request(config, USER_API + _path(params.get('name')), parameters=querystring, method='GET')
         else:
             querystring.update({'start': params.get('start'), 'count': params.get('count')})
             data = {k: v for k, v in querystring.items() if v is not None and v != '' and v != {} and v != []}
@@ -170,7 +170,7 @@ def update_user(config, params):
             data['sms-phone'] = ''
         elif params.get('sms') == 'Enable':
             data['sms-phone'] = _sms_phone(params)
-        response = _api_request(config, USER_API + str(name), parameters=querystring, method='PUT', body=data)
+        response = _api_request(config, USER_API + _path(name), parameters=querystring, method='PUT', body=data)
 
         # Add user to user groups
         if params.get('user_group_name'):
@@ -196,7 +196,7 @@ def delete_user(config, params):
             querystring.update({'vdom': ','.join(vdom_list)})
 
         # delete User
-        response = _api_request(config, USER_API + str(params.get('name')), parameters=querystring, method='DELETE')
+        response = _api_request(config, USER_API + _path(params.get('name')), parameters=querystring, method='DELETE')
         return response
     except Exception as Err:
         raise ConnectorError(str(Err))

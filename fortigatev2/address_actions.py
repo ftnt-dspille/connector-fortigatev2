@@ -8,7 +8,7 @@ from connectors.core.connector import ConnectorError, get_logger
 
 from .constants import *
 from .utils import *
-from .utils import _api_request, _validate_vdom
+from .utils import _api_request, _path, _validate_vdom
 
 logger = get_logger('fortigatev2')
 
@@ -108,7 +108,7 @@ def get_addresses(config, params):
         else:
             url = ADD_ADDRESS
         if params.get('name'):
-            return _api_request(config, url + str(params.get('name')).replace('/', '%2f'), parameters=app_param)
+            return _api_request(config, url + _path(params.get('name')), parameters=app_param)
         else:
             return _api_request(config, url, parameters=app_param)
     except Exception as Err:
@@ -121,10 +121,10 @@ def update_address(config, params):
         app_param = {'vdom': vdom_list} if vdom_list else {}
         if params.get('address_category') != 'IPv6 Address':
             data = generate_body_param(config, params)
-            url = ADD_ADDRESS + str(params.get('name')).replace('/', '%2f')
+            url = ADD_ADDRESS + _path(params.get('name'))
         else:
             data = generate_ipv6_body_param(config, params)
-            url = ADD_ADDRESS_IPv6 + str(params.get('name')).replace('/', '%2f')
+            url = ADD_ADDRESS_IPv6 + _path(params.get('name'))
         if params.get('new_name'):
             data.update({'name': params.get('new_name')})
         return _api_request(config, url, parameters=app_param, body=data, method='PUT')
@@ -137,9 +137,9 @@ def delete_address(config, params):
         vdom_list, vdom_not_exists = _validate_vdom(config, params, check_multiple_vdom=False)
         app_param = {'vdom': vdom_list} if vdom_list else {}
         if params.get('address_category') != 'IPv6 Address':
-            url = ADD_ADDRESS + params.get('name').replace('/', '%2f')
+            url = ADD_ADDRESS + _path(params.get('name'))
         else:
-            url = ADD_ADDRESS_IPv6 + params.get('name').replace('/', '%2f')
+            url = ADD_ADDRESS_IPv6 + _path(params.get('name'))
         return _api_request(config, url, parameters=app_param, method='Delete')
     except Exception as Err:
         raise ConnectorError(str(Err))

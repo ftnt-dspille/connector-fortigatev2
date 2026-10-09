@@ -15,6 +15,7 @@ operation and parameter, so playbooks move over by changing the connector name.
 - `Delete Address`, `Get Addresses`, `Delete Address Group` and `Get Address Groups` with the default category now act on the IPv4 table (previously `Delete` hit the IPv6 table).
 - `Create Policy` now sets the policy comment (`comments`), and no longer fails when optional fields such as security profiles are left empty.
 - `Create User` / `Update User` no longer fail on empty optional fields, send `fortitoken-cloud` for FortiToken Cloud, no longer write `NoneNone` as the SMS phone, and `Update User` sends only FortiOS user fields.
+- Object names and policy IDs from operation inputs are escaped as a single REST path segment, so names containing a space, `/`, `?`, `#` or `%` address the right object (previously only `/` was handled, in some operations).
 - An invalid API key is now reported as `Unauthorized` instead of an empty error, and an unknown operation name raises a clean error instead of crashing.
 - Corrected select defaults in the operation forms (`IPv4` → `IPv4 Address` / `IPv4 Group`, `All` → `ALL`, `IP Pool Configuration` → empty) and the duplicated `start-mac` field in `Update Address`.
 

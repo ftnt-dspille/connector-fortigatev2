@@ -18,7 +18,7 @@ from .service_actions import *
 from .service_group_actions import *
 from .url_actions import *
 from .user_actions import *
-from .utils import _api_request, _get_list_from_str_or_list, _get_vdom, _validate_vdom
+from .utils import _api_request, _get_list_from_str_or_list, _get_vdom, _path, _validate_vdom
 
 logger = get_logger('fortigatev2')
 
@@ -103,7 +103,7 @@ def delete_bulk_address(config, vdom, ip_list, type):
     try:
         for ip in ip_list:
             try:
-                response = _api_request(config, url.format(ip_name=ip), parameters=querystring, method='DELETE')
+                response = _api_request(config, url.format(ip_name=_path(ip)), parameters=querystring, method='DELETE')
                 logger.debug('IP {} deleted successfully.. '.format(ip))
             except Exception as e:
                 referenced_ips.append(ip)
@@ -132,7 +132,7 @@ def update_address_grp(config, vdom, ip_group_name, ip_list, blocked_ips=None, u
             data = {'member': list(map(lambda x: {'name': x}, ip_list + (blocked_ips if blocked_ips else [])))}
             method = 'PUT'
             endpoint = ADDRESS_GROUP_API if 'IPv4' in type else ADDRESS_GROUP_API_IPv6
-        response = _api_request(config, endpoint.format(ip_group_name=ip_group_name), parameters=querystring, body=data, method=method)
+        response = _api_request(config, endpoint.format(ip_group_name=_path(ip_group_name)), parameters=querystring, body=data, method=method)
         if 'result' in response and not response.get('result', []):
             logger.error('Check VDOM/user or API key permission to update address group.')
             return False
