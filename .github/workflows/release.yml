@@ -1,0 +1,38 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Check tag matches info.json
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          test "$(python3 -c 'import json; print(json.load(open("fortigatev2/info.json"))["version"])')" = "$VERSION"
+
+      - name: Build connector tarball
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          tar --exclude='__pycache__' -czf "connector-fortigatev2-${VERSION}.tgz" fortigatev2/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "FortiGate v2 Connector v${{ steps.version.outputs.version }}"
+          body_path: fortigatev2/release_notes.md
+          files: "connector-fortigatev2-${{ steps.version.outputs.version }}.tgz"

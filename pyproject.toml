@@ -1,0 +1,38 @@
+# Test/lint configuration for the FortiGate v2 connector.
+#
+# This file is config-only -- the connector ships as a tarball to the FortiSOAR
+# appliance runtime, not as a wheel -- so there is intentionally no
+# [build-system] or [project] table. Runtime deps live in
+# fortigatev2/requirements.txt.
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 130
+# The connector ships to the FortiSOAR appliance runtime, which is Python 3.9
+# on 7.6.x -- so target the lowest runtime, not the dev machine's interpreter.
+target-version = "py39"
+
+[tool.ruff.lint]
+# pyflakes, pycodestyle, isort, pyupgrade, bugbear
+select = ["F", "E", "W", "I", "UP", "B"]
+ignore = [
+    # Fortinet connector house style, inherited from fortigate-firewall 5.4.0:
+    # `'{0}'.format(x)` interpolation and a bare `raise ConnectorError(err)` in
+    # `except` (the runtime logs the original traceback before re-raising).
+    "UP030", "UP031", "UP032", "B904",
+    # The upstream modules share helpers through `from .utils import *`.
+    "F403", "F405",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Upstream fortigate-firewall code kept as-is where it is only style: long
+# user-facing message strings, unused `response = ...` assignments.
+"fortigatev2/*" = ["E501", "F841", "E701"]
+
+[tool.mypy]
+# No python_version pin: current mypy cannot target 3.9. The 3.9 syntax floor
+# (FortiSOAR 7.6.x runtime) is enforced by ruff's target-version and the CI matrix.
+# connectors.core / connectors.cyops_utilities exist only on the appliance.
+ignore_missing_imports = true
