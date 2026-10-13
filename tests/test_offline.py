@@ -456,3 +456,77 @@ def test_names_are_escaped_as_one_path_segment(fgt, operation, params, path):
     sent = [c.request.url for c in _active['mock'].calls if 'system/vdom' not in c.request.url]
     assert sent and all(urlparse(u).path == urlparse(BASE + path).path for u in sent), sent
     assert all(not urlparse(u).query or 'vdom=' in urlparse(u).query for u in sent)
+
+
+# --------------------------------------------------------------------------- generic REST call
+def test_execute_api_request_get_sends_key_and_vdom(fgt):
+    fgt.get(BASE + 'monitor/system/status', json={'results': {'version': 'v7'}, 'status': 'success'})
+    out = run('execute_api_request', {'endpoint': '/api/v2/monitor/system/status'})
+    assert out['results']['version'] == 'v7'
+    call = calls('GET', 'monitor/system/status')[0]
+    assert call.request.headers['Authorization'] == 'Bearer k'
+    assert parse_qs(urlparse(call.request.url).query)['vdom'] == ['root']
+
+
+def test_execute_api_request_query_params_and_explicit_vdom(fgt):
+    fgt.get(BASE + 'cmdb/firewall/address', json={'results': []})
+    run('execute_api_request', {'endpoint': 'api/v2/cmdb/firewall/address', 'query_params': '{"vdom": "other", "count": 5}'})
+    query = parse_qs(urlparse(calls('GET', 'firewall/address')[0].request.url).query)
+    assert query['vdom'] == ['other'] and query['count'] == ['5']
+
+
+def test_execute_api_request_post_sends_json_body(fgt):
+    fgt.post(BASE + 'cmdb/firewall/address', json=OK)
+    run('execute_api_request', {'endpoint': '/api/v2/cmdb/firewall/address', 'method': 'post',
+                                'request_body': {'name': 'a', 'subnet': '192.0.2.1/32'}})
+    call = calls('POST', 'firewall/address')[0]
+    assert body(call) == {'name': 'a', 'subnet': '192.0.2.1/32'}
+    assert call.request.headers['Content-Type'] == 'application/json'
+    assert call.request.headers['Authorization'] == 'Bearer k'
+
+
+def test_execute_api_request_delete_has_no_body(fgt):
+    fgt.delete(BASE + 'cmdb/firewall/address/a', json=OK)
+    run('execute_api_request', {'endpoint': '/api/v2/cmdb/firewall/address/a', 'method': 'DELETE',
+                                'request_body': '{"ignored": 1}'})
+    assert body(calls('DELETE', 'firewall/address/a')[0]) is None
+
+
+def test_execute_api_request_auth_failure_surfaced(fgt):
+    fgt.get(BASE + 'monitor/system/status', status=401, body='')
+    with pytest.raises(ConnectorError, match='Unauthorized'):
+        run('execute_api_request', {'endpoint': '/api/v2/monitor/system/status'})
+
+
+def test_execute_api_request_forbidden_is_an_error(fgt):
+    fgt.get(BASE + 'monitor/system/status', status=403,
+            json={'status': 'error', 'http_status': 403, 'error': -37})
+    with pytest.raises(ConnectorError, match='HTTP 403'):
+        run('execute_api_request', {'endpoint': '/api/v2/monitor/system/status'})
+
+
+@pytest.mark.parametrize('endpoint', [
+    'https://evil.example.com/api/v2/x', 'http://evil.example.com', '//evil.example.com/api/v2/x', 'ftp://x/y',
+    '/api/v2/../x', '/api/v2/%2e%2e/x', '/api/v2/%252e%252e/x', '/api/v2/%25252e%25252e/x',
+    '/api/v2/..%5cx', '/api/v2\\x'])
+def test_execute_api_request_refuses_anything_that_could_send_the_key_elsewhere(fgt, endpoint):
+    with pytest.raises(ConnectorError, match='path on the configured server'):
+        run('execute_api_request', {'endpoint': endpoint})
+    assert not fgt.calls
+
+
+def test_execute_api_request_validates_input(fgt):
+    with pytest.raises(ConnectorError, match='Endpoint is required'):
+        run('execute_api_request', {})
+    with pytest.raises(ConnectorError, match='Method must be'):
+        run('execute_api_request', {'endpoint': '/api/v2/monitor/system/status', 'method': 'TRACE'})
+    with pytest.raises(ConnectorError, match='valid JSON'):
+        run('execute_api_request', {'endpoint': '/api/v2/x', 'request_body': '{nope'})
+    with pytest.raises(ConnectorError, match='JSON object'):
+        run('execute_api_request', {'endpoint': '/api/v2/x', 'query_params': '[1]'})
+    assert not fgt.calls
+
+
+def test_playbook_collection_version_matches_info():
+    pb = json.loads((Path(__file__).resolve().parent.parent / 'fortigatev2' / 'playbooks' / 'playbooks.json').read_text())
+    assert pb['data'][0]['name'].endswith(' - ' + INFO['version'])
